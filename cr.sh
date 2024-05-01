@@ -1,0 +1,36 @@
+#!/bin/bash
+SD_PATH=/home/pi/printer_data/gcodes
+FILENAME=cr.gcode
+cat ${SD_PATH}/${3} > /tmp/crtmpA.$$
+echo 'G28 X Y' > ${SD_PATH}/${FILENAME}
+echo "SET_KINEMATIC_POSITION Z=${1}" >> ${SD_PATH}/${FILENAME}
+#cat /tmp/crtmpA.$$ | sed -e '1,/Z'${2}'/ d' | sed -ne '/ Z/,$ p' | grep -m 1 ' Z' | sed -ne 's/.* Z\([^ ]*\)/G0 Z\1/p' >> ${SD_PATH}/${FILENAME}
+BG_EX=`tac /tmp/crtmpA.$$ | sed -e '/ Z'${2}'[^0-9]*$/q' | tac | tail -n+2 | sed -e '/ Z[0-9]/ q' | tac | sed -e '/ E[0-9]/ q' | sed -ne 's/.* E\([^ ]*\)/G92 E\1/p'`
+# If we failed to match an extrusion command (allowing us to correctly set the E axis) prior to the matched layer height, then simply set the E axis to the first E value present in the resemued gcode.
+# This avoids extruding a huge blod on resume, and/or max extrusion errors.
+if [ "${BG_EX}" = "" ]; then
+  BG_EX=`tac /tmp/crtmpA.$$ | sed -e '/ Z'${2}'[^0-9]*$/q' | tac | tail -n+2 | sed -ne '/ Z/,$ p' | sed -e '/ E[0-9]/ q' | sed -ne 's/.* E\([^ ]*\)/G92 E\1/p'`
+fi
+echo ${BG_EX} >> ${SD_PATH}/${FILENAME}
+echo 'G91' >> ${SD_PATH}/${FILENAME}
+echo "G1 Z-${1}" >> ${SD_PATH}/${FILENAME}
+echo 'G90' >> ${SD_PATH}/${FILENAME}
+cat /tmp/crtmpA.$$ | sed -e '1,/Z'${2}'/ d' | sed -ne '/ Z/,$ p' | grep -m 1 ' Z' | sed -ne 's/.* Z\([^ ]*\)/SET_KINEMATIC_POSITION Z=\1/p' >> ${SD_PATH}/${FILENAME}
+cat /tmp/crtmpA.$$ | sed '/ Z'${2}'/q' | sed -ne '/\(M104\|M140\|M109\|M190\|M106\)/p' >> ${SD_PATH}/${FILENAME}
+if [ -z "${4}" ]; then # (doc) if overwrite BED temp
+  cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_bed_temperature | sed -ne 's/.* = /M140 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
+  cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_bed_temperature | sed -ne 's/.* = /M190 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
+else
+  echo "M190 S${4}" >> ${SD_PATH}/${FILENAME}  
+fi  
+if [ -z "${5}" ]; then # (doc) if overwrite HOTEND temp
+  cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_print_temperature | sed -ne 's/.* = /M104 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
+  cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_print_temperature | sed -ne 's/.* = /M109 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
+else
+  echo "M109 S${5}" >> ${SD_PATH}/${FILENAME} 
+fi
+# cat /tmp/crtmpA.$$ | sed -e '1,/ Z'${2}'[^0-9]*$/ d' | sed -e '/ Z/q' | tac | grep -m 1 ' E' | sed -ne 's/.* E\([^ ]*\)/G92 E\1/p' >> ${SD_PATH}/${FILENAME}
+#tac /tmp/crtmpA.$$ | sed -e '/ Z'${2}'[^0-9]*$/q' | tac | tail -n+2 | sed -e '/ Z[0-9]/ q' | tac | sed -e '/ E[0-9]/ q' | sed -ne 's/.* E\([^ ]*\)/G92 E\1/p' >> ${SD_PATH}/${FILENAME}
+# cat /tmp/crtmpA.$$ | sed -e '1,/Z'${2}'/ d' | sed -ne '/ Z/,$ p' >> ${SD_PATH}/${FILENAME}
+tac /tmp/crtmpA.$$ | sed -e '/ Z'${2}'[^0-9]*$/q' | tac | tail -n+2 | sed -ne '/ Z/,$ p' >> ${SD_PATH}/${FILENAME}
+rm /tmp/crtmpA.$$
