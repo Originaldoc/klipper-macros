@@ -21,12 +21,14 @@ if [ -z "${4}" ]; then # (doc) if overwrite BED temp
   cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_bed_temperature | sed -ne 's/.* = /M140 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
   cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_bed_temperature | sed -ne 's/.* = /M190 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
 else
+  echo "M140 S${4}" >> ${SD_PATH}/${FILENAME}  
   echo "M190 S${4}" >> ${SD_PATH}/${FILENAME}  
 fi  
 if [ -z "${5}" ]; then # (doc) if overwrite HOTEND temp
   cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_print_temperature | sed -ne 's/.* = /M104 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
   cat /tmp/crtmpA.$$ | sed -ne '/;End of Gcode/,$ p' | tr '\n' ' ' | sed -ne 's/ ;[^ ]* //gp' | sed -ne 's/\\\\n/;/gp' | tr ';' '\n' | grep material_print_temperature | sed -ne 's/.* = /M109 S/p' | head -1 >> ${SD_PATH}/${FILENAME}
 else
+  echo "M104 S${5}" >> ${SD_PATH}/${FILENAME} 
   echo "M109 S${5}" >> ${SD_PATH}/${FILENAME} 
 fi
 # cat /tmp/crtmpA.$$ | sed -e '1,/ Z'${2}'[^0-9]*$/ d' | sed -e '/ Z/q' | tac | grep -m 1 ' E' | sed -ne 's/.* E\([^ ]*\)/G92 E\1/p' >> ${SD_PATH}/${FILENAME}
