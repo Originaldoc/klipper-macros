@@ -1,5 +1,5 @@
 #!/bin/bash
-SD_PATH=/home/pi/printer_data/gcodes
+SD_PATH=/home/dietpi/printer_data/gcodes
 FILENAME=cr.gcode
 cat ${SD_PATH}/${3} > /tmp/crtmpA.$$
 echo 'G28 X Y' > ${SD_PATH}/${FILENAME}
