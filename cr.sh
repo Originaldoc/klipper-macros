@@ -66,9 +66,36 @@ BG_EX=$(sed -n "1,${RESUME_LINE}p" "$TEMPFILE" \
 ############################################
 # 4. CABECERA SEGURA
 ############################################
+# === EXTRAER THUMBNAIL ===
+THUMBNAIL=$(sed -n '/^; thumbnail begin/,/^; thumbnail end/p' "$TEMPFILE")
+
+{
+  [ -n "$THUMBNAIL" ] && echo "$THUMBNAIL"
+  echo "; RESUMED PRINT - ORIGINAL FILE: $SRCFILE"
+  echo "; ⚠ MODEL MAY BE INCOMPLETE"
+} >> "$OUTFILE"
+
 {
 echo "; === SAFE RESUME (Orca Slicer) ==="
+
+# --- TEMPERATURAS (PRIMERO SIEMPRE) ---
+[ -n "$BED_TEMP" ] && {
+  echo "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=$BED_TEMP"
+}
+[ -n "$HOT_TEMP" ] && {
+  echo "SET_HEATER_TEMPERATURE HEATER=extruder TARGET=$HOT_TEMP"
+}
+[ -n "$BED_TEMP" ] && {
+  echo "TEMPERATURE_WAIT SENSOR=heater_bed MINIMUM=$BED_TEMP"
+}
+[ -n "$HOT_TEMP" ] && {
+  echo "TEMPERATURE_WAIT SENSOR=extruder MINIMUM=$HOT_TEMP"
+}
+
+# --- LIMITES DE SEGURIDAD ---
 echo "SET_VELOCITY_LIMIT VELOCITY=50 ACCEL=500"
+
+# --- CINEMÁTICA ---
 echo "G28 X Y"
 echo "SET_KINEMATIC_POSITION Z=$Z_OFFSET"
 [ -n "$BG_EX" ] && echo "$BG_EX"
@@ -77,7 +104,8 @@ echo "G1 Z-$Z_OFFSET F300"
 echo "G90"
 echo "SET_KINEMATIC_POSITION Z=$REAL_Z"
 echo "G1 F1200"
-} > "$OUTFILE"
+
+} >> "$OUTFILE"
 
 ############################################
 # 5. TEMPERATURAS
